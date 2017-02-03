@@ -2,28 +2,30 @@ package com.example.xchen.deafphoneapp;
 
 import android.content.Intent;
 import android.speech.RecognizerIntent;
-import android.speech.tts.TextToSpeech;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.xchen.deafphoneapp.speech2Text.Speech2Text;
+import com.example.xchen.deafphoneapp.text2Speech.Text2Speech;
 
 import java.util.ArrayList;
-import java.util.Locale;
 
 
-public class PhoneMain extends AppCompatActivity implements TextToSpeech.OnInitListener{
+public class PhoneMain extends AppCompatActivity {
+
+    public final int REQUEST_CODE_SPEECH_INPUT = 100;
 
     private TextView outputText;
     private Speech2Text speech2Text;
 
-    private TextToSpeech text2Speech;
     private EditText inputText;
-    private Button speak;
+    private Text2Speech text2Speech;
+
+//    private TelephonyManager tm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,60 +36,58 @@ public class PhoneMain extends AppCompatActivity implements TextToSpeech.OnInitL
         speech2Text = new Speech2Text(this);
 
         inputText = (EditText) findViewById(R.id.inputText);
-        speak = (Button) findViewById(R.id.speakButton);
-//        text2Speech = new Text2Speech();
-        speak.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View view){
-//                speakOutNow();
-            }
-        });
+        text2Speech = new Text2Speech(this);
+
+//        tm = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
+//        tm.listen(speech2Text, PhoneStateListener.LISTEN_CALL_STATE);
     }
 
 
-    //======================
+    //==========Text To Speech===============================
+    /**
+     * Quelle
+     * https://www.tutorialspoint.com/android/android_text_to_speech.htm
+     * */
     public void onClickSpeechButton(View v){
-        speakOutNow();
+        String toSpeak = inputText.getText().toString();
+        Toast.makeText(getApplicationContext(), toSpeak,Toast.LENGTH_LONG).show();
+        text2Speech.speak(toSpeak);
     }
 
+//    public void onPause(){
+//        text2Speech.shutdown();
+//        super.onPause();
+//    }
+    //====================================================
 
-    private void speakOutNow(){
-        String text = inputText.getText().toString();
-        text2Speech.speak(text,TextToSpeech.QUEUE_FLUSH, null);
-    }
-
-    @Override
-    public void onInit(int status) {
-        if(status == TextToSpeech.SUCCESS){
-            int language = text2Speech.setLanguage(Locale.getDefault());
-            if(language == TextToSpeech.LANG_MISSING_DATA || language == TextToSpeech.LANG_NOT_SUPPORTED){
-                speak.setEnabled(true);
-                speakOutNow();
-            } else {
-
-            }
-        } else {
-
-        }
-    }
-
-    //===========================
-
+    //============Speech To Text =========================
+    /**
+     * Quelle:
+     * http://www.androidhive.info/2014/07/android-speech-to-text-tutorial/
+     */
     public void onClickRecognizeButton(View v){
         if(v.getId() == R.id.recognizeButton){
-            speech2Text.promptSpeechInput();
+            speech2Text.startVoiceRecognitionActivity();
         }
     }
 
-    public void onActivityResult(int request_code, int result_code, Intent intent){
-        super.onActivityResult(request_code, result_code, intent);
-        switch(request_code){
-            case 100: if(result_code == RESULT_OK && intent != null){
-                ArrayList<String> result = intent.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                outputText.setText(result.get(0));
-            }
+    /**
+     * Receiving speech input
+     * */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data){
+        super.onActivityResult(requestCode, resultCode, data);
+        switch(requestCode){
+            case REQUEST_CODE_SPEECH_INPUT: // = 100
+                if(resultCode == RESULT_OK && data != null){
+                    ArrayList<String> result = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                    outputText.setText(result.get(0));
+                }
                 break;
+            default: System.out.println("Speech Input Failure");
         }
     }
+    //====================================================
+
 
 }

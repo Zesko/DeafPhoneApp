@@ -3,6 +3,8 @@ package com.example.xchen.deafphoneapp.speech2Text;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.speech.RecognizerIntent;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.widget.Toast;
 
 import com.example.xchen.deafphoneapp.PhoneMain;
@@ -12,7 +14,7 @@ import java.util.Locale;
  * Created by xchen on 02.02.2017.
  */
 
-public class Speech2Text  {
+public class Speech2Text extends PhoneStateListener {
 
     private final PhoneMain phoneMain;
 
@@ -23,15 +25,26 @@ public class Speech2Text  {
     /**
      * Input of microfon
      */
-    public void promptSpeechInput(){
-        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Say something!");
+    public void startVoiceRecognitionActivity(){
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now");
         try{
-            phoneMain.startActivityForResult(i, 100);
+            phoneMain.startActivityForResult(intent, phoneMain.REQUEST_CODE_SPEECH_INPUT /* = 100*/);
         }catch(ActivityNotFoundException a){
-            Toast.makeText(phoneMain, "Sorry, Your device doesn't support speech language!", Toast.LENGTH_LONG).show();
+            Toast.makeText(phoneMain, "Sorry, your device doesn't support speech language!", Toast.LENGTH_LONG).show();
+        }
+    }
+
+
+    @Override
+    public void onCallStateChanged(int state, String incomingNumber) {
+        switch (state) {
+            case TelephonyManager.CALL_STATE_RINGING:
+                // called when someone is ringing to this phone
+                Toast.makeText(phoneMain, "Incoming: "+incomingNumber, Toast.LENGTH_LONG).show();
+                break;
         }
     }
 
