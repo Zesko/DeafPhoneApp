@@ -29,7 +29,7 @@ public class Speech2Text extends PhoneStateListener {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now");
+//        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak now");
         try{
             phoneMain.startActivityForResult(intent, phoneMain.REQUEST_CODE_SPEECH_INPUT /* = 100*/);
         }catch(ActivityNotFoundException a){
@@ -38,14 +38,14 @@ public class Speech2Text extends PhoneStateListener {
     }
 
 
-    @Override
-    public void onCallStateChanged(int state, String incomingNumber) {
-        switch (state) {
-            case TelephonyManager.CALL_STATE_RINGING:
-                // called when someone is ringing to this phone
-                Toast.makeText(phoneMain, "Incoming: "+incomingNumber, Toast.LENGTH_LONG).show();
-                break;
-        }
-    }
+//    @Override
+//    public void onCallStateChanged(int state, String incomingNumber) {
+//        switch (state) {
+//            case TelephonyManager.CALL_STATE_RINGING:
+//                // called when someone is ringing to this phone
+//                Toast.makeText(phoneMain, "Incoming: "+incomingNumber, Toast.LENGTH_LONG).show();
+//                break;
+//        }
+//    }
 
 }

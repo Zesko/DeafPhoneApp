@@ -1,9 +1,13 @@
 package com.example.xchen.deafphoneapp;
 
 import android.content.Intent;
+import android.speech.RecognitionListener;
+import android.speech.RecognitionService;
 import android.speech.RecognizerIntent;
+import android.speech.SpeechRecognizer;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -13,6 +17,8 @@ import com.example.xchen.deafphoneapp.speech2Text.Speech2Text;
 import com.example.xchen.deafphoneapp.text2Speech.Text2Speech;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Locale;
 
 
 public class PhoneMain extends AppCompatActivity {
@@ -25,23 +31,124 @@ public class PhoneMain extends AppCompatActivity {
     private EditText inputText;
     private Text2Speech text2Speech;
 
-//    private TelephonyManager tm;
-
+    private String LOG_TAG = "PhoneMain";
+    SpeechRecognizer sr = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phone_main);
+
+        boolean available = SpeechRecognizer.isRecognitionAvailable(this);
+        Log.i(LOG_TAG, ""+ available);
+        if (available){
+            sr = SpeechRecognizer.createSpeechRecognizer(this);
+            sr.setRecognitionListener(new RecognitionListener() {
+                @Override
+                public void onReadyForSpeech(Bundle params) {
+                    Log.i(LOG_TAG, "onReadyForSpeech, Bundle params = " + params.toString());
+                }
+
+                @Override
+                public void onBeginningOfSpeech() {
+                    Log.i(LOG_TAG, "onBeginningOfSpeech");
+
+                }
+
+                @Override
+                public void onRmsChanged(float rmsdB) {
+//                    Log.i(LOG_TAG, "onRmsChanged, float rmsdB = " + rmsdB);
+
+                }
+
+                @Override
+                public void onBufferReceived(byte[] buffer) {
+                    Log.i(LOG_TAG, "onBufferReceived, byte[] buffer = " + Arrays.toString(buffer));
+                }
+
+                @Override
+                public void onEndOfSpeech() {
+                    Log.i(LOG_TAG, "onEndOfSpeech");
+                }
+
+                @Override
+                public void onError(int error) {
+                    Log.i(LOG_TAG, "onError, int error = " + getErrorText(error));
+                }
+
+                @Override
+                public void onResults(Bundle results) {
+                    //Result
+                    Log.i(LOG_TAG, "onResults, Bundle results = "+results.toString());
+                    String str = new String();
+                    ArrayList<String> result = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    for (int i = 0; i < result.size(); i++)
+                    {
+
+                        str += result.get(i);
+                    }
+                    outputText.setText("results: "+String.valueOf(result.size()) + " : " + str);
+
+
+                }
+
+                @Override
+                public void onPartialResults(Bundle partialResults) {
+                    Log.i(LOG_TAG, "onPartialResults, Bundle partialResults = "+ partialResults.toString());
+                }
+
+                @Override
+                public void onEvent(int eventType, Bundle params) {
+                    Log.i(LOG_TAG, "onEvent, int eventType = "+ eventType + " , Bundle params = "+ params.toString());
+                }
+            });
+
+
+        }
 
         outputText = (TextView) findViewById(R.id.outputText);
         speech2Text = new Speech2Text(this);
 
         inputText = (EditText) findViewById(R.id.inputText);
         text2Speech = new Text2Speech(this);
-
-//        tm = (TelephonyManager)this.getSystemService(Context.TELEPHONY_SERVICE);
-//        tm.listen(speech2Text, PhoneStateListener.LISTEN_CALL_STATE);
     }
 
+
+    public static String getErrorText(int errorCode) {
+        String message;
+        switch (errorCode) {
+            case SpeechRecognizer.ERROR_AUDIO:
+                message = "Audio recording error";
+                break;
+            case SpeechRecognizer.ERROR_CLIENT:
+                message = "Client side error";
+                break;
+            case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                message = "Insufficient permissions";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK:
+                message = "Network error";
+                break;
+            case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                message = "Network timeout";
+                break;
+            case SpeechRecognizer.ERROR_NO_MATCH:
+                message = "No match";
+                break;
+            case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                message = "RecognitionService busy";
+                break;
+            case SpeechRecognizer.ERROR_SERVER:
+                message = "error from server";
+                break;
+            case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                message = "No speech input";
+                break;
+            default:
+                message = "Didn't understand, please try again.";
+                break;
+        }
+        return message;
+    }
 
     //==========Text To Speech===============================
     /**
@@ -50,7 +157,7 @@ public class PhoneMain extends AppCompatActivity {
      * */
     public void onClickSpeechButton(View v){
         String toSpeak = inputText.getText().toString();
-        Toast.makeText(getApplicationContext(), toSpeak,Toast.LENGTH_LONG).show();
+        Toast.makeText(getApplicationContext(), toSpeak, Toast.LENGTH_LONG).show();
         text2Speech.speak(toSpeak);
     }
 
@@ -67,7 +174,16 @@ public class PhoneMain extends AppCompatActivity {
      */
     public void onClickRecognizeButton(View v){
         if(v.getId() == R.id.recognizeButton){
-            speech2Text.startVoiceRecognitionActivity();
+//            speech2Text.startVoiceRecognitionActivity();
+
+            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
+
+            intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
+            sr.startListening(intent);
+
         }
     }
 
