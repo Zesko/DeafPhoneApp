@@ -2,7 +2,6 @@ package com.example.xchen.deafphoneapp;
 
 import android.content.Intent;
 import android.speech.RecognitionListener;
-import android.speech.RecognitionService;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.support.v7.app.AppCompatActivity;
@@ -27,12 +26,15 @@ public class PhoneMain extends AppCompatActivity {
 
     private TextView outputText;
     private Speech2Text speech2Text;
+    private Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+    private boolean isListining = false;
 
     private EditText inputText;
     private Text2Speech text2Speech;
 
     private String LOG_TAG = "PhoneMain";
     SpeechRecognizer sr = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,6 +44,7 @@ public class PhoneMain extends AppCompatActivity {
         Log.i(LOG_TAG, ""+ available);
         if (available){
             sr = SpeechRecognizer.createSpeechRecognizer(this);
+
             sr.setRecognitionListener(new RecognitionListener() {
                 @Override
                 public void onReadyForSpeech(Bundle params) {
@@ -73,27 +76,47 @@ public class PhoneMain extends AppCompatActivity {
                 @Override
                 public void onError(int error) {
                     Log.i(LOG_TAG, "onError, int error = " + getErrorText(error));
+                    if(error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ){
+                        sr.cancel();
+                        isListining = false;
+                        repeatListening();
+                    } else if( error == SpeechRecognizer.ERROR_NO_MATCH){
+                        isListining = false;
+                        repeatListening();
+                    } else if( error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
+                        isListining = false;
+                        repeatListening();
+                    }
                 }
+
 
                 @Override
                 public void onResults(Bundle results) {
+                    isListining = false;
+                    repeatListening();
                     //Result
                     Log.i(LOG_TAG, "onResults, Bundle results = "+results.toString());
                     String str = new String();
                     ArrayList<String> result = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                    for (int i = 0; i < result.size(); i++)
+                    for (int i = 0; i < 1 /*result.size()*/; i++)
                     {
-
-                        str += result.get(i);
+                        str += result.get(i) + ". ";
                     }
-                    outputText.setText("results: "+String.valueOf(result.size()) + " : " + str);
-
-
+                    outputText.setText(str);
                 }
 
                 @Override
                 public void onPartialResults(Bundle partialResults) {
+                    isListining = false;
+
                     Log.i(LOG_TAG, "onPartialResults, Bundle partialResults = "+ partialResults.toString());
+                    String str = new String();
+                    ArrayList<String> result = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+                    for (int i = 0; i < result.size(); i++)
+                    {
+                        str += result.get(i) + ". ";
+                    }
+                    outputText.setText(str);
                 }
 
                 @Override
@@ -101,8 +124,6 @@ public class PhoneMain extends AppCompatActivity {
                     Log.i(LOG_TAG, "onEvent, int eventType = "+ eventType + " , Bundle params = "+ params.toString());
                 }
             });
-
-
         }
 
         outputText = (TextView) findViewById(R.id.outputText);
@@ -113,7 +134,8 @@ public class PhoneMain extends AppCompatActivity {
     }
 
 
-    public static String getErrorText(int errorCode) {
+
+    public String getErrorText(int errorCode) {
         String message;
         switch (errorCode) {
             case SpeechRecognizer.ERROR_AUDIO:
@@ -174,16 +196,32 @@ public class PhoneMain extends AppCompatActivity {
      */
     public void onClickRecognizeButton(View v){
         if(v.getId() == R.id.recognizeButton){
-//            speech2Text.startVoiceRecognitionActivity();
+            if(isListining){
+                sr.cancel();
+                isListining = false;
+            }
+            if(!isListining) {
+                createIntent();
+                repeatListening();
+            }
+        }
+    }
 
-            Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-            intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE,"voice.recognition.test");
 
-            intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS,5);
+    public void createIntent(){
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, this.getPackageName());
+        intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 3000L);
+        intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
+    }
+
+    public void repeatListening(){
+        //            speech2Text.startVoiceRecognitionActivity();
+        if(!isListining){
+            isListining = true;
             sr.startListening(intent);
-
         }
     }
 
